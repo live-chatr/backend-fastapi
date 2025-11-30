@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: list = ["http://localhost:8000", "http://127.0.0.1:8000"]
 
+    # Argon2 Configuration
+    ARGON2_TIME_COST: int = 3
+    ARGON2_MEMORY_COST: int = 65536
+    ARGON2_PARALLELISM: int = 4
+    ARGON2_HASH_LENGTH: int = 32
+    ARGON2_SALT_LENGTH: int = 16
+
     # class Config:
     #     env_file = ".env"
 

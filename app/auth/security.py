@@ -1,35 +1,29 @@
-# app/auth/security.py
 from datetime import datetime, timedelta
 from typing import Any, Union, Optional
 from jose import jwt, JWTError
-from passlib.context import CryptContext
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError, InvalidHashError
 from app.config.settings import settings
-import bcrypt
-import hashlib
+
+# Initialize Argon2 password hasher
+password_hash = PasswordHasher(
+    time_cost=settings.ARGON2_TIME_COST,  # Number of iterations
+    memory_cost=settings.ARGON2_MEMORY_COST,  # Memory usage (64MB)
+    parallelism=settings.ARGON2_PARALLELISM,  # Degree of parallelism
+    hash_len=settings.ARGON2_HASH_LENGTH,  # Hash length
+    salt_len=settings.ARGON2_SALT_LENGTH  # Salt length
+)
 
 
-# Use direct bcrypt instead of passlib to avoid compatibility issues
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
-        # Direct bcrypt verification
-        return bcrypt.checkpw(
-            plain_password.encode('utf-8'),
-            hashed_password.encode('utf-8')
-        )
-    except Exception:
+        return password_hash.verify(hashed_password, plain_password)
+    except (VerifyMismatchError, InvalidHashError):
         return False
 
 
 def get_password_hash(password: str) -> str:
-    # Hash password to handle bcrypt's 72-byte limit
-    if len(password) > 72:
-        # Use SHA-256 to hash long passwords before bcrypt
-        password = hashlib.sha256(password.encode('utf-8')).hexdigest()
-
-    # Generate salt and hash with bcrypt
-    salt = bcrypt.gensalt(rounds=settings.BCRYPT_ROUNDS)
-    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-    return hashed.decode('utf-8')
+    return password_hash.hash(password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
