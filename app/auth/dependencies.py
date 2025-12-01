@@ -1,4 +1,3 @@
-# app/auth/dependencies.py
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
@@ -7,7 +6,6 @@ from app.auth.security import verify_token
 from app.models.user import User
 
 security = HTTPBearer()
-
 
 def get_current_user(
         token: str = Depends(security),
