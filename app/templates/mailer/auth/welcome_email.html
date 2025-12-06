@@ -1,0 +1,29 @@
+<!-- templates/welcome_email.html -->
+{% extends "base.html" %}
+
+{% block title %}Welcome!{% endblock %}
+
+{% block header_title %}Welcome Aboard!{% endblock %}
+
+{% block content %}
+<h2>Welcome {{ user_name }}!</h2>
+
+<p>Thank you for verifying your email address. Your account is now fully activated!</p>
+
+<p>Here's what you can do next:</p>
+<ul>
+    <li>Complete your profile</li>
+    <li>Explore our features</li>
+    <li>Set up your preferences</li>
+</ul>
+
+<div style="text-align: center;">
+    <a href="{{ dashboard_url }}" class="button">Go to Dashboard</a>
+</div>
+
+<p>If you have any questions, feel free to <a href="{{ support_url }}">contact our support team</a>.</p>
+
+<p>We're excited to have you on board!</p>
+
+<p>Best regards,<br>The Team</p>
+{% endblock %}

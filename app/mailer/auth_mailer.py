@@ -18,5 +18,19 @@ class AuthMailer(BaseMailer):
             context=context
         )
 
+    def send_welcome_email(self, user_name: str, user_email: str):
+        context = {
+            'user_name': user_name,
+            'dashboard_url': f"{self.frontend_url}/dashboard",
+            'support_url': f"{self.frontend_url}/support"
+        }
+
+        return self.send_email(
+            to_email=user_email,
+            subject="Welcome to Our Platform!",
+            template_name="welcome_email.html",
+            context=context
+        )
+
     def mailer_dir(self):
         return 'auth'

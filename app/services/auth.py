@@ -132,6 +132,9 @@ class AuthService:
             self.db.delete(verification_token)
             self.db.commit()
 
+            full_name = f"{user.first_name} {user.last_name}"
+            AuthMailer().send_welcome_email(full_name, user.email)
+
             return {"success": True, "message": "Email verified successfully"}
 
         return {"success": False, "message": "User not found"}
