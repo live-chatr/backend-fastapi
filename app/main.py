@@ -19,7 +19,7 @@ app.add_middleware(
 )
 @app.get("/")
 def home():
-    return {"message": "FastAPI is running!"}
+    return {"message": "`Running!"}
     
 @app.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)):
