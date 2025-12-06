@@ -29,7 +29,6 @@ async def verify_email_page(
         token: str,
         db: Session = Depends(get_db)
 ):
-    print(f"reached here {token}")
     result = AuthService(db).verify_token(token)
     return result
 

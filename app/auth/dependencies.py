@@ -30,8 +30,3 @@ def get_current_user(
         raise credentials_exception
 
     return user
-
-# Use in your protected routes:
-# @app.get("/protected")
-# def protected_route(current_user: User = Depends(get_current_user)):
-#     return {"message": f"Hello {current_user.email}"}
