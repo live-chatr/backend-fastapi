@@ -44,7 +44,7 @@ class AuthService:
         self.db.commit()
         self.db.refresh(user)
 
-        token = self.create_verification_token(self.db, user.id)
+        token = self.create_verification_token(user.id)
         AuthMailer().send_verification_email(user.email, user.first_name, token)
 
         return user
@@ -89,9 +89,9 @@ class AuthService:
         """Generate a secure verification token"""
         return secrets.token_urlsafe(32)
 
-    def create_verification_token(self, db: Session, user_id: int, expires_hours: int = 24):
+    def create_verification_token(self, user_id: int, expires_hours: int = 24):
         # Remove any existing tokens for this user
-        db.query(VerificationToken).filter(
+        self.db.query(VerificationToken).filter(
             VerificationToken.user_id == user_id
         ).delete()
 
@@ -106,8 +106,8 @@ class AuthService:
             expires_at=expires_at
         )
 
-        db.add(verification_token)
-        db.commit()
+        self.db.add(verification_token)
+        self.db.commit()
 
         return token
 
