@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -111,33 +111,26 @@ class AuthService:
 
         return token
 
-    def verify_token(self, db: Session, token: str):
-        """Verify token and activate user"""
-
-        # Find token
-        verification_token = db.query(VerificationToken).filter(
+    def verify_token(self, token: str):
+        verification_token = self.db.query(VerificationToken).filter(
             VerificationToken.token == token
         ).first()
 
         if not verification_token:
             return {"success": False, "message": "Invalid token"}
 
-        # Check if token is expired
-        if verification_token.expires_at < datetime.utcnow():
-            # Delete expired token
-            db.delete(verification_token)
-            db.commit()
+        if verification_token.expires_at < datetime.now(timezone.utc):
+            self.db.delete(verification_token)
+            self.db.commit()
             return {"success": False, "message": "Token expired"}
 
-        # Get user and mark as verified
-        user = db.query(User).filter(User.id == verification_token.user_id).first()
+        user = self.db.query(User).filter(User.id == verification_token.user_id).first()
         if user:
             user.is_verified = True
             user.is_active = True
 
-            # Delete used token
-            db.delete(verification_token)
-            db.commit()
+            self.db.delete(verification_token)
+            self.db.commit()
 
             return {"success": True, "message": "Email verified successfully"}
 

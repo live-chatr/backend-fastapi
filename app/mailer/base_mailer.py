@@ -30,15 +30,13 @@ class BaseMailer:
 
     @staticmethod
     def format_date(value, format='%B %d, %Y'):
-        """Jinja2 filter to format dates"""
         if isinstance(value, datetime):
             return value.strftime(format)
         return value
 
     def render_template(self, template_name: str, context: Dict[str, Any]) -> str:
-        """Render HTML template with context"""
-        template = self.env.get_template(template_name)
-        # Add current year to all templates
+        template_dir_path = f"{self.mailer_dir()}/{template_name}"
+        template = self.env.get_template(template_dir_path)
         context['current_year'] = datetime.now().year
         return template.render(**context)
 
@@ -51,15 +49,10 @@ class BaseMailer:
             cc: Optional[list] = None,
             bcc: Optional[list] = None
     ) -> bool:
-        """Send email using HTML template"""
         try:
-            # Render HTML template
             html_content = self.render_template(template_name, context)
-
-            # Create plain text version (optional but recommended)
             plain_text = self.html_to_plain_text(html_content)
 
-            # Create email message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
             msg['From'] = self.from_email
@@ -70,11 +63,9 @@ class BaseMailer:
             if bcc:
                 msg['Bcc'] = ', '.join(bcc)
 
-            # Attach both HTML and plain text versions
             msg.attach(MIMEText(plain_text, 'plain'))
             msg.attach(MIMEText(html_content, 'html'))
 
-            # Send email
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
                 server.starttls()
                 server.login(self.smtp_username, self.smtp_password)
@@ -90,20 +81,18 @@ class BaseMailer:
 
         except Exception as e:
             print(f"Failed to send email to {to_email}: {str(e)}")
-            # Log the error properly in production
             return False
+
+    def mailer_dir(self):
+        return ''
 
     @staticmethod
     def html_to_plain_text(html: str) -> str:
-        """Convert HTML to plain text (basic implementation)"""
         import re
-        # Remove HTML tags
         text = re.sub(r'<[^>]+>', ' ', html)
-        # Convert HTML entities
         text = text.replace('&nbsp;', ' ')
         text = text.replace('&amp;', '&')
         text = text.replace('&lt;', '<')
         text = text.replace('&gt;', '>')
-        # Collapse multiple spaces
         text = re.sub(r'\s+', ' ', text).strip()
         return text
