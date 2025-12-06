@@ -21,6 +21,7 @@ import secrets
 class AuthService:
     def __init__(self, db: Session):
         self.db = db
+        self.auth_mailer = AuthMailer()
 
     def register_user(self, user_data: UserCreate) -> User:
         # Check if user already exists
@@ -45,7 +46,7 @@ class AuthService:
         self.db.refresh(user)
 
         token = self.create_verification_token(user.id)
-        AuthMailer().send_verification_email(user.email, user.first_name, token)
+        self.auth_mailer.send_verification_email(user.email, user.first_name, token)
 
         return user
 
@@ -133,7 +134,7 @@ class AuthService:
             self.db.commit()
 
             full_name = f"{user.first_name} {user.last_name}"
-            AuthMailer().send_welcome_email(full_name, user.email)
+            self.auth_mailer.send_welcome_email(full_name, user.email)
 
             return {"success": True, "message": "Email verified successfully"}
 
