@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
-from app.models import User, RefreshToken, VerificationToken
+from app.models import User, RefreshToken, VerificationToken, PasswordResetToken
 from app.auth.security import (
     verify_password,
     get_password_hash,
@@ -86,8 +86,7 @@ class AuthService:
         self.db.add(refresh_token)
         self.db.commit()
 
-    def generate_verification_token(self) -> str:
-        """Generate a secure verification token"""
+    def generate_token(self) -> str:
         return secrets.token_urlsafe(32)
 
     def create_verification_token(self, user_id: int, expires_hours: int = 24):
@@ -97,7 +96,7 @@ class AuthService:
         ).delete()
 
         # Generate new token
-        token = self.generate_verification_token()
+        token = self.generate_token()
         expires_at = datetime.utcnow() + timedelta(hours=expires_hours)
 
         # Store token
@@ -140,8 +139,90 @@ class AuthService:
 
         return {"success": False, "message": "User not found"}
 
+    def forgot_password(self, user_email: str):
+        user, token = self.create_password_reset_token(user_email)
+        self.auth_mailer.send_password_reset_email(user.email, user.first_name, token)
+
+    def create_password_reset_token(self, user_email: str, expires_hours: int = 2):
+        user = self.db.query(User).filter(User.email == user_email).first()
+        if not user or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found or inactive"
+            )
+
+        token = self.generate_token()
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=expires_hours)
+
+        self.db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.is_used == False
+        ).delete()
+
+        reset_token = PasswordResetToken(
+            token=token,
+            user_id=user.id,
+            expires_at=expires_at,
+            is_used=False
+        )
+
+        self.db.add(reset_token)
+        self.db.commit()
+        # self.db.refresh(reset_token)
+
+        return [user, token]
+
+    def reset_password(self, token: str, new_password: str):
+        validation_result = self.validate_reset_token(token)
+
+        if not validation_result["valid"]:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=validation_result["message"]
+            )
+
+        reset_token = self.db.query(PasswordResetToken).filter(
+            PasswordResetToken.token == token
+        ).first()
+
+        if not reset_token:
+            raise HTTPException(
+                status_code=status.HTTP_404_BAD_REQUEST,
+                detail="Token not found"
+            )
+
+        user = self.db.query(User).filter(User.id == reset_token.user_id).first()
+        if not user:
+            return {"success": False, "message": "User not found"}
+
+        hashed_password = get_password_hash(new_password)
+        user.hashed_password = hashed_password
+
+        reset_token.is_used = True
+        reset_token.used_at = datetime.now(timezone.utc)
+
+        self.db.commit()
+
+    def validate_reset_token(self, token: str):
+        reset_token = self.db.query(PasswordResetToken).filter(
+            PasswordResetToken.token == token,
+            PasswordResetToken.is_used == False
+        ).first()
+
+        if not reset_token:
+            return {"valid": False, "message": "Invalid or expired reset token"}
+
+        if reset_token.expires_at < datetime.now(timezone.utc):
+            return {"valid": False, "message": "Reset token has expired"}
+
+        # Get user
+        user = self.db.query(User).filter(User.id == reset_token.user_id).first()
+        if not user:
+            return {"valid": False, "message": "User not found"}
+
+        return {"valid": True, "message": "Reset Token valid"}
+
     def refresh_access_token(self, refresh_token: str) -> Tuple[str, str]:
-        # Verify refresh token
         payload = verify_token(refresh_token)
         if not payload or payload.get("type") != "refresh":
             raise HTTPException(

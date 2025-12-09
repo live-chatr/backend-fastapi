@@ -32,5 +32,22 @@ class AuthMailer(BaseMailer):
             context=context
         )
 
+    def send_password_reset_email(self, user_email: str, user_name: str, token: str):
+        reset_url = f"{self.frontend_url}/auth/reset-password?token={token}"
+
+        context = {
+            'user_name': user_name,
+            'reset_url': reset_url,
+            'expiry_minutes': 30,
+            'support_url': f"{self.frontend_url}/support"
+        }
+
+        return self.send_email(
+            to_email=user_email,
+            subject="Reset Your Password",
+            template_name="password_reset.html",
+            context=context
+        )
+
     def mailer_dir(self):
         return 'auth'

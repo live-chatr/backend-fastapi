@@ -8,7 +8,11 @@ from app.schemas.auth import (
     UserResponse,
     Token,
     LoginRequest,
-    RefreshTokenRequest
+    RefreshTokenRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
+    PasswordResetTokenResponse
 )
 
 router = APIRouter(
@@ -53,6 +57,19 @@ def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
         refresh_token=refresh_token
     )
 
+@router.post("/forgot-password", response_model=ResetPasswordResponse)
+async def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    auth_service = AuthService(db)
+    auth_service.forgot_password(data.email)
+
+    return {"success": True, "message": "Email sent"}
+
+@router.post("/reset-password", response_model=PasswordResetTokenResponse)
+async def reset_password(reset_password_request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    auth_service = AuthService(db)
+    auth_service.reset_password(reset_password_request.token, reset_password_request.new_password)
+
+    return {"success": True, "message": "Password reset"}
 
 @router.post("/logout")
 def logout(request: RefreshTokenRequest, db: Session = Depends(get_db)):

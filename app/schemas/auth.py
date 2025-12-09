@@ -51,3 +51,25 @@ class LoginRequest(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+    confirm_password: str
+
+    @validator('confirm_password')
+    def passwords_match(cls, v, values, **kwargs):
+        if 'new_password' in values and v != values['new_password']:
+            raise ValueError('passwords do not match')
+        return v
+
+class ResetPasswordResponse(BaseModel):
+    message: str
+    success: bool
+
+class PasswordResetTokenResponse(BaseModel):
+    message: str
+    success: bool
