@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends
-from app.routers import users, auth
+from app.routers import users, auth, conversations
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
 from app.auth.dependencies import get_current_user
@@ -17,9 +17,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 @app.get("/")
 def home():
-    return {"message": "`Running!"}
+    return {"message": "Running!"}
     
 @app.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)):
@@ -27,3 +28,4 @@ async def me(current_user: User = Depends(get_current_user)):
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(conversations.router)

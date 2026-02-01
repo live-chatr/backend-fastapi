@@ -21,7 +21,13 @@ class Settings(BaseSettings):
     BCRYPT_ROUNDS: int = os.getenv("BCRYPT_ROUNDS")
 
     # CORS
-    ALLOWED_ORIGINS: list = ["http://localhost:8000", "http://127.0.0.1:8000"]
+    ALLOWED_ORIGINS: list = \
+        [
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+        ]
 
     # Argon2 Configuration
     ARGON2_TIME_COST: int = 3
