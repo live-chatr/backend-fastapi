@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete
 from fastapi import HTTPException, status
 
 from app.models import User, RefreshToken, VerificationToken, PasswordResetToken
@@ -19,13 +20,13 @@ import secrets
 
 
 class AuthService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.auth_mailer = AuthMailer()
 
-    def register_user(self, user_data: UserCreate) -> User:
+    async def register_user(self, user_data: UserCreate) -> User:
         # Check if user already exists
-        existing_user = self.db.query(User).filter(User.email == user_data.email).first()
+        existing_user = (await self.db.execute(select(User).where(User.email == user_data.email))).scalars().first()
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -42,10 +43,10 @@ class AuthService:
         )
 
         self.db.add(user)
-        self.db.commit()
-        self.db.refresh(user)
+        await self.db.commit()
+        await self.db.refresh(user)
 
-        token = self.create_verification_token(user.id)
+        token = await self.create_verification_token(user.id)
         self.auth_mailer.send_verification_email(user.email, user.first_name, token)
 
         return user
@@ -89,26 +90,23 @@ class AuthService:
     def generate_token(self) -> str:
         return secrets.token_urlsafe(32)
 
-    def create_verification_token(self, user_id: int, expires_hours: int = 24):
+    async def create_verification_token(self, user_id: int, expires_hours: int = 24):
         # Remove any existing tokens for this user
-        self.db.query(VerificationToken).filter(
-            VerificationToken.user_id == user_id
-        ).delete()
+        await self.db.execute(
+            delete(VerificationToken).where(VerificationToken.user_id == user_id)
+        )
 
         # Generate new token
         token = self.generate_token()
-        expires_at = datetime.utcnow() + timedelta(hours=expires_hours)
-
-        # Store token
         verification_token = VerificationToken(
             token=token,
             user_id=user_id,
-            expires_at=expires_at
+            expires_at=datetime.utcnow() + timedelta(hours=expires_hours)
         )
 
         self.db.add(verification_token)
-        self.db.commit()
-
+        await self.db.commit()
+        await self.db.refresh(verification_token)
         return token
 
     def verify_token(self, token: str):

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_db
 
 router = APIRouter(
@@ -9,5 +9,5 @@ router = APIRouter(
 
 
 @router.get("/")
-def get_users(db: Session = Depends(get_db)):
+def get_users(db: AsyncSession = Depends(get_db)):
     return [] 
